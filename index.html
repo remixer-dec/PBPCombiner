@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!--https://remixer-dec.github.io/PBPCombiner | Created by remixer-dec | inspired by Stefano Russello (PSP Brew) | 2017 | Public Domain-->
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>PBP Online Combiner</title>
+	<link rel="stylesheet" href="obvious-buttons.css">
+	<style>
+	.btn{margin:10px;width:400px;padding:6px;cursor:pointer;display:inline-block}input{display:none}#images img{padding:2px}.box{animation:zoom ease-in-out 3s;animation-iteration-count:1;transform-origin:50% 50%;border-radius:40%}.box:hover{animation:zoom ease-in-out .8s infinite} html{background:#999} body{background:#eee;border:10px solid #eee;padding:20px;font-family:'Roboto',Open Sans, PT Sans, sans-serif;border-radius: 20px; box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.32)}@keyframes zoom{0%,100%,69%{transform:scaleX(1) scaleY(1)}42%{transform:scaleX(1.04) scaleY(1.04)}}@media only screen and (max-width: 442px) {.btn{width:90%;overflow:hidden;}}
+	</style>
+</head>
+<body>
+<center>
+<h4>This tool can transform old 1.50 PSP homebrews to compatible with modern CFW*<br><sup style="font-weight:300;color:#aaa">*but there is no guarantee, they will work</sup></h4>
+
+	<img class="box" width="300" height="300" src="psp-icon.png"><br>
+	<label for="fileinput" class="btn">
+    	Select PBP inside NAME<b>%</b> directory
+	</label>
+		<input type='file' id='fileinput' onchange="fileselected(event)">
+	<label for="fileinput2" class="btn">
+    	Select PBP inside NAME directory
+	</label>
+		<input type='file' id='fileinput2' onchange="fileselected(event)"><br>
+	<label for="btb" class="btn">
+	    	Combine!
+	</label>	
+		<input type='button' id='btb' onclick="doIt()">
+	<div id="images"></div>
+	</center>
+	<script>
+	var f1,f2;
+	var fileselected = (e) => {
+		var reader = new FileReader();
+		reader.readAsArrayBuffer(e.target.files[0]);
+			if(e.target == fileinput){
+				setTimeout(()=>{f1 = getRawHEX(reader)},420);
+			} else {
+				setTimeout(()=>{f2 = getRawHEX(reader)},420);
+			}
+	}
+	function getRawHEX(reader){
+			var dataView = new DataView(reader.result);
+			var data = "";
+			for(var i=0;i<dataView.byteLength;i++){
+				let bt = dataView.getUint8(i,false).toString(16);
+			  data+=bt.length<2?'0'+bt:bt;
+			}
+			findPics(data);
+			return data;
+		}
+	function findPics(data){
+		if(data.match(/(89504e47.*000049454e44ae)/)!=null){
+			let imgs = data.match(/(89504e47.+?000049454e44ae426082)/gm);
+			images.innerHTML = '';
+			for(let i=0,l=imgs.length;i<l;i++){
+				let png = imgs[i];
+				let bl = hexToBlob(png,"image/png");
+				images.innerHTML+=`<img src="${bl}">`;
+			}
+		}
+	}
+	function hexToBlob(hx, mime){
+		hx += hx.length%2!=0?"0":"";
+		let byteArray = new Uint8Array(hx.length/2);
+		for (var x = 0; x < byteArray.length; x++){
+		    byteArray[x] = parseInt(hx.substr(x*2,2), 16);
+		}
+		let blob = new Blob([byteArray], {type: mime});
+		let link = URL.createObjectURL(blob);
+		return link;
+	}
+	function doIt(){
+		 f3 = f1+f2;
+		 off = ((f3.length)/2).toString(16);//offset
+		while(off.length<8){
+			off="0"+off;
+		}
+
+		f3 = f3.split("");
+		f3[78] = off[0];
+		f3[79] = off[1];
+		f3[76] = off[2];
+		f3[77] = off[3];
+		f3[74] = off[4];
+		f3[75] = off[5];
+		f3[72] = off[6];
+		f3[73] = off[7];
+		f3 = f3.join("");
+		createLink(hexToBlob(f3),document);
+	}
+	function createLink(l,d){
+	 var a = d.createElement('a');
+        a.href=l;
+        a.style="display:none;";
+        a.download = "EBOOT.PBP";
+        d.body.appendChild(a).click();
+    }
+	</script>
+</body>
+</html>
